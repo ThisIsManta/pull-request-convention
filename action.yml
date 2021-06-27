@@ -1,0 +1,22 @@
+name: 'Pull Request Conventions'
+description: 'Check pull request conventions'
+inputs:
+  title:
+    description: 'A regular expression to match against the pull request title'
+    required: false
+  exclusive-labels:
+    description: 'A newline-separated list of pull request labels to be required at least one'
+    required: false
+  required-sections:
+    description: 'A newline-separated list of sections in the description to be non-empty'
+    required: false
+  required-checklists:
+    description: 'A newline-separated list of checklist items in the description to be checked'
+    required: false
+  screenshots-or-videos-required:
+    description: 'A flag to force adding screenshots or videos'
+    required: false
+    default: false
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
