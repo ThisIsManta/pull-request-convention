@@ -9,7 +9,7 @@
     "postversion": "git push --tags origin master"
   },
   "devDependencies": {
-    "esbuild": "^0.12.9"
+    "esbuild": "^0.12.20"
   },
   "dependencies": {
     "@actions/core": "^1.4.0",
