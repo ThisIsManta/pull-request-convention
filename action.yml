@@ -13,10 +13,9 @@ inputs:
   required-checklists:
     description: 'A newline-separated list of checklist items in the description to be checked'
     required: false
-  screenshots-or-videos-required:
-    description: 'A flag to force adding screenshots or videos'
+  required-graphics:
+    description: 'A regular expression to match against one or more file name that requires a screenshot or video in the description'
     required: false
-    default: false
 runs:
   using: 'node12'
   main: 'dist/index.js'

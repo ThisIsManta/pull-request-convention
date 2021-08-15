@@ -72,8 +72,8 @@ let failed = false
 		}
 	}
 
-	const screenshotsOrVideosRequired = core.getBooleanInput('screenshots-or-videos-required')
-	if (screenshotsOrVideosRequired) {
+	const requiredGraphics = core.getInput('required-graphics')
+	if (requiredGraphics) {
 		const markdownImageTag = /!\[[^\]]*\]\((.*?)\s*("(?:.*[^"])")?\s*\)/m
 		const htmlImageTag = /\<img\W(.|\r?\n)*?\>/m
 		const htmlVideoTag = /\<video\W(.|\r?\n)*?\>/m
@@ -81,13 +81,15 @@ let failed = false
 
 		if (
 			!markdownImageTag.test(description) &&
-			!htmlImageTag.test(description) &&
-			!htmlVideoTag.test(description) &&
+			!htmlImageTag.test(description) && // TODO: check "src" attribute
+			!htmlVideoTag.test(description) && // TODO: check "src" attribute
 			!gitHubVideoURL.test(description)
 		) {
+			const filePattern = new RegExp(requiredGraphics, 'i')
+
 			let pageIndex = 0
 			while (++pageIndex) {
-				const files = await octokit.rest.pulls.listFiles({
+				const { data: files } = await octokit.rest.pulls.listFiles({
 					...github.context.repo,
 					pull_number: pr.number,
 					page: pageIndex,
@@ -96,9 +98,9 @@ let failed = false
 					break
 				}
 
-				const graphicFile = files.find(file => /\.(html|jsx|tsx|jpg|gif|png|svg|woff2?)$/i.test(file.filename) && file.status !== 'deleted')
+				const graphicFile = files.find(file => file.status !== 'deleted' && filePattern.test(file.filename))
 				if (graphicFile) {
-					fail('Screenshots or videos are required in the description because of ' + graphicFile.filename)
+					fail('A screenshot or video is required in the description because of ' + graphicFile.filename)
 					break
 				}
 			}
