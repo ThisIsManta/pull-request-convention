@@ -85,23 +85,29 @@ let failed = false
 			!htmlVideoTag.test(description) && // TODO: check "src" attribute
 			!gitHubVideoURL.test(description)
 		) {
-			const filePattern = new RegExp(requiredGraphics, 'i')
+			if (requiredGraphics === '.*') {
+				// Avoid reaching GitHub API rate limit
+				fail('A screenshot or video is always required in the description')
 
-			let pageIndex = 0
-			while (++pageIndex) {
-				const { data: files } = await octokit.rest.pulls.listFiles({
-					...github.context.repo,
-					pull_number: pr.number,
-					page: pageIndex,
-				})
-				if (!Array.isArray(files) || files.length === 0) {
-					break
-				}
+			} else {
+				const filePattern = new RegExp(requiredGraphics, 'i')
 
-				const graphicFile = files.find(file => file.status !== 'deleted' && filePattern.test(file.filename))
-				if (graphicFile) {
-					fail('A screenshot or video is required in the description because of ' + graphicFile.filename)
-					break
+				let pageIndex = 0
+				while (++pageIndex) {
+					const { data: files } = await octokit.rest.pulls.listFiles({
+						...github.context.repo,
+						pull_number: pr.number,
+						page: pageIndex,
+					})
+					if (!Array.isArray(files) || files.length === 0) {
+						break
+					}
+
+					const graphicFile = files.find(file => file.status !== 'deleted' && filePattern.test(file.filename))
+					if (graphicFile) {
+						fail('A screenshot or video is required in the description because of ' + graphicFile.filename)
+						break
+					}
 				}
 			}
 		}
