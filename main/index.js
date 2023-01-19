@@ -24,7 +24,7 @@ let failed = false
 	}
 
 	const exclusiveLabels = toArray(core.getInput('exclusive-labels'))
-	if (exclusiveLabels) {
+	if (exclusiveLabels && exclusiveLabels.length > 0) {
 		const foundLabels = pr.labels.filter(label => exclusiveLabels.includes(label.name))
 		if (foundLabels.length === 0) {
 			fail('One of the following pull request labels must be chosen: ' + exclusiveLabels.join(', ') + '.')
