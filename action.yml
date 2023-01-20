@@ -2,19 +2,19 @@ name: 'Pull Request Conventions'
 description: 'Check pull request conventions'
 inputs:
   title:
-    description: 'A regular expression to match against the pull request title'
+    description: 'Verify if the PR title matches this regular expression'
     required: false
   exclusive-labels:
-    description: 'A newline-separated list of pull request labels to be required at least one'
+    description: 'Verify if the PR labels contain one of the labels listed in this newline-separated list'
     required: false
   required-sections:
-    description: 'A newline-separated list of sections in the description to be non-empty'
+    description: 'Verify if the PR description contains # sections according to this newline-separated list'
     required: false
   required-checklists:
-    description: 'A newline-separated list of checklist items in the description to be checked'
+    description: 'Verify if the PR description has the checklist ticked [x] for this newline-separated list representing checklist items'
     required: false
   required-graphics:
-    description: 'A regular expression to match against one or more file name that requires a screenshot or video in the description'
+    description: 'Verify if the PR description has at least one screenshot or video when this regular expression matching against one or more file name or when this is literally `true` or when this is { title } where title is a regular expression matching against the PR title'
     required: false
 runs:
   using: 'node12'
