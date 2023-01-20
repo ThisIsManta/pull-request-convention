@@ -3,8 +3,9 @@
   "version": "2.1.1",
   "author": "Anantachai Saothong <thisismanta@gmail.com>",
   "license": "MIT",
+  "type": "module",
   "scripts": {
-    "build": "esbuild main/index.js --bundle --outfile=dist/index.js --platform=node --target=node12 --minify",
+    "build": "esbuild main/index.mjs --bundle --outfile=dist/index.js --platform=node --target=node12 --minify",
     "preversion": "npm run build && git add dist/*",
     "postversion": "git push --tags origin master"
   },

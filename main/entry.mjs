@@ -1,31 +1,24 @@
-const core = require('@actions/core')
-const github = require('@actions/github')
-const compact = require('lodash/compact')
-const difference = require('lodash/difference')
-const escapeRegExp = require('lodash/escapeRegExp')
+import compact from 'lodash/compact'
+import difference from 'lodash/difference'
+import escapeRegExp from 'lodash/escapeRegExp'
 
-const octokit = github.getOctokit(process.env.GITHUB_TOKEN)
-const pr = github.context.payload.pull_request
-
-let failed = false
-
-	;
-(async () => {
-	if (pr.draft) {
+export default async function entry({ pull, repo, core, octokit, skip, fail }) {
+	if (pull.draft) {
 		skip('A draft PR is not ready to be checked.')
+		return
 	}
 
 	const titleRule = core.getInput('title')
 	if (titleRule) {
 		const titleValidator = new RegExp(titleRule)
-		if (!titleValidator.test(pr.title)) {
+		if (!titleValidator.test(pull.title)) {
 			fail('Pull request title must conform to ' + titleRule + '.')
 		}
 	}
 
 	const exclusiveLabels = toArray(core.getInput('exclusive-labels'))
 	if (exclusiveLabels && exclusiveLabels.length > 0) {
-		const foundLabels = pr.labels.filter(label => exclusiveLabels.includes(label.name))
+		const foundLabels = pull.labels.filter(label => exclusiveLabels.includes(label.name))
 		if (foundLabels.length === 0) {
 			fail('One of the following pull request labels must be chosen: ' + exclusiveLabels.join(', ') + '.')
 		} else if (foundLabels.length > 1) {
@@ -33,7 +26,7 @@ let failed = false
 		}
 	}
 
-	const description = pr.body
+	const description = pull.body
 		.replace(/<!--.+?-->/g, '') // Strip out Markdown comments
 		.trim()
 
@@ -85,18 +78,18 @@ let failed = false
 			!htmlVideoTag.test(description) && // TODO: check "src" attribute
 			!gitHubVideoURL.test(description)
 		) {
-			if (requiredGraphics === '.*') {
+			if (requiredGraphics === true || requiredGraphics === '.*') {
 				// Avoid reaching GitHub API rate limit
 				fail('A screenshot or video is always required in the description')
 
-			} else {
+			} else if (typeof requiredGraphics === 'string') {
 				const filePattern = new RegExp(requiredGraphics, 'i')
 
 				let pageIndex = 0
 				while (++pageIndex) {
 					const { data: files } = await octokit.rest.pulls.listFiles({
-						...github.context.repo,
-						pull_number: pr.number,
+						...repo,
+						pull_number: pull.number,
 						page: pageIndex,
 					})
 					if (!Array.isArray(files) || files.length === 0) {
@@ -109,26 +102,16 @@ let failed = false
 						break
 					}
 				}
+			} else if (typeof requiredGraphics === 'object' && requiredGraphics !== null) {
+				if (typeof requiredGraphics.title === 'string') {
+					const titlePattern = new RegExp(requiredGraphics.title)
+					if (titlePattern.test(pull.title)) {
+						fail('A screenshot or video is required in the description because the title matches ' + titlePattern.source)
+					}
+				}
 			}
 		}
 	}
-
-	if (failed) {
-		process.exit(1)
-	}
-})().catch((error) => {
-	console.log(error)
-	process.exit(2)
-})
-
-function fail(message) {
-	core.error(message)
-	failed = true
-}
-
-function skip(message) {
-	core.info(message)
-	process.exit(0)
 }
 
 function toArray(newLineSeparatedText) {
