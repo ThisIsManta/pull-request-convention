@@ -3,7 +3,6 @@
   "version": "3.0.0",
   "author": "Anantachai Saothong <thisismanta@gmail.com>",
   "license": "MIT",
-  "type": "module",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testMatch **/*.test.mjs",
     "build": "esbuild main/index.mjs --bundle --outfile=dist/index.js --platform=node --target=node12 --minify",
