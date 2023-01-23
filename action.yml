@@ -13,8 +13,11 @@ inputs:
   required-checklists:
     description: 'Verify if the PR description has the checklist ticked [x] for this newline-separated list representing checklist items'
     required: false
-  required-graphics:
-    description: 'Verify if the PR description has at least one screenshot or video when this regular expression matching against one or more file name or when this is literally `true` or when this is { title } where title is a regular expression matching against the PR title'
+  required-graphics-on-title:
+    description: 'Verify if the PR description has at least one screenshot or video when this regular expression matching against the PR title'
+    required: false
+  required-graphics-on-files:
+    description: 'Verify if the PR description has at least one screenshot or video when this regular expression matching against one or more file name'
     required: false
 runs:
   using: 'node12'

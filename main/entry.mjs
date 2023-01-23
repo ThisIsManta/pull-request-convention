@@ -65,8 +65,9 @@ export default async function entry({ pull, repo, core, octokit, skip, fail }) {
 		}
 	}
 
-	const requiredGraphics = core.getInput('required-graphics')
-	if (requiredGraphics) {
+	const requiredGraphicsOnTitle = core.getInput('required-graphics-on-title')
+	const requiredGraphicsOnFiles = core.getInput('required-graphics-on-files')
+	if (requiredGraphicsOnTitle || requiredGraphicsOnFiles) {
 		const markdownImageTag = /!\[[^\]]*\]\((.*?)\s*("(?:.*[^"])")?\s*\)/m
 		const htmlImageTag = /\<img\W(.|\r?\n)*?\>/m
 		const htmlVideoTag = /\<video\W(.|\r?\n)*?\>/m
@@ -78,12 +79,12 @@ export default async function entry({ pull, repo, core, octokit, skip, fail }) {
 			!htmlVideoTag.test(description) && // TODO: check "src" attribute
 			!gitHubVideoURL.test(description)
 		) {
-			if (requiredGraphics === true || requiredGraphics === '.*') {
+			if (requiredGraphicsOnFiles === '.*') {
 				// Avoid reaching GitHub API rate limit
 				fail('A screenshot or video is always required in the description')
 
-			} else if (typeof requiredGraphics === 'string') {
-				const filePattern = new RegExp(requiredGraphics, 'i')
+			} else if (typeof requiredGraphicsOnFiles === 'string') {
+				const filePattern = new RegExp(requiredGraphicsOnFiles, 'i')
 
 				let pageIndex = 0
 				while (++pageIndex) {
@@ -102,12 +103,10 @@ export default async function entry({ pull, repo, core, octokit, skip, fail }) {
 						break
 					}
 				}
-			} else if (typeof requiredGraphics === 'object' && requiredGraphics !== null) {
-				if (typeof requiredGraphics.title === 'string') {
-					const titlePattern = new RegExp(requiredGraphics.title)
-					if (titlePattern.test(pull.title)) {
-						fail('A screenshot or video is required in the description because the title matches ' + titlePattern.source)
-					}
+			} else if (typeof requiredGraphicsOnTitle === 'string') {
+				const titlePattern = new RegExp(requiredGraphicsOnTitle)
+				if (titlePattern.test(pull.title)) {
+					fail('A screenshot or video is required in the description because the title matches ' + titlePattern.source)
 				}
 			}
 		}

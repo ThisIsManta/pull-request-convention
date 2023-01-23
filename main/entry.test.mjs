@@ -34,11 +34,11 @@ it('does not fail, given a draft PR', () => {
 
 // TODO: add more test cases
 
-describe('required-graphics', () => {
+describe('required-graphics-on-title', () => {
 	it('checks against the PR title', () => {
 		core.getInput.mockImplementation((key) => {
-			if (key === 'required-graphics') {
-				return { title: '^(feat|fix)\\S' }
+			if (key === 'required-graphics-on-title') {
+				return '^(feat|fix)\\S'
 			}
 		})
 
