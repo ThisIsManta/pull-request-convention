@@ -17,7 +17,7 @@ export default async function entry({ pull, repo, core, octokit, skip, fail }) {
 	}
 
 	const exclusiveLabels = toArray(core.getInput('exclusive-labels'))
-	if (exclusiveLabels && exclusiveLabels.length > 0) {
+	if (exclusiveLabels.length > 0) {
 		const foundLabels = pull.labels.filter(label => exclusiveLabels.includes(label.name))
 		if (foundLabels.length === 0) {
 			fail('One of the following pull request labels must be chosen: ' + exclusiveLabels.join(', ') + '.')
@@ -43,7 +43,7 @@ export default async function entry({ pull, repo, core, octokit, skip, fail }) {
 		.filter(({ head }) => head.length > 0)
 
 	const requiredSections = toArray(core.getInput('required-sections'))
-	if (requiredSections) {
+	if (requiredSections.length > 0) {
 		const missingSections = difference(requiredSections, sections.map(section => section.head))
 		if (missingSections.length > 0) {
 			fail('The following sections must be presented in the description:' + missingSections.map(text => '\n - ' + text).join(''))
@@ -56,7 +56,7 @@ export default async function entry({ pull, repo, core, octokit, skip, fail }) {
 	}
 
 	const requiredChecklists = toArray(core.getInput('required-checklists'))
-	if (requiredChecklists) {
+	if (requiredChecklists.length > 0) {
 		const uncompletedChecklists = requiredChecklists.filter(text =>
 			new RegExp('^' + escapeRegExp('- [x] ' + text), 'm').test(description) === false
 		)
@@ -67,47 +67,47 @@ export default async function entry({ pull, repo, core, octokit, skip, fail }) {
 
 	const requiredGraphicsOnTitle = core.getInput('required-graphics-on-title')
 	const requiredGraphicsOnFiles = core.getInput('required-graphics-on-files')
-	if (requiredGraphicsOnTitle || requiredGraphicsOnFiles) {
-		const markdownImageTag = /!\[[^\]]*\]\((.*?)\s*("(?:.*[^"])")?\s*\)/m
-		const htmlImageTag = /\<img\W(.|\r?\n)*?\>/m
-		const htmlVideoTag = /\<video\W(.|\r?\n)*?\>/m
-		const gitHubVideoURL = /https:\/\/user-images\.githubusercontent\.com(?:\/[a-zA-Z0-9\-]+?)+?\.(?:mp4|mov)/mi
+	const markdownImageTag = /!\[[^\]]*\]\((.*?)\s*("(?:.*[^"])")?\s*\)/m
+	const htmlImageTag = /\<img\W(.|\r?\n)*?\>/m
+	const htmlVideoTag = /\<video\W(.|\r?\n)*?\>/m
+	const gitHubVideoURL = /https:\/\/user-images\.githubusercontent\.com(?:\/[a-zA-Z0-9\-]+?)+?\.(?:mp4|mov)/mi
 
-		if (
-			!markdownImageTag.test(description) &&
-			!htmlImageTag.test(description) && // TODO: check "src" attribute
-			!htmlVideoTag.test(description) && // TODO: check "src" attribute
-			!gitHubVideoURL.test(description)
-		) {
-			if (requiredGraphicsOnFiles === '.*') {
-				// Avoid reaching GitHub API rate limit
-				fail('A screenshot or video is always required in the description')
+	if (
+		!markdownImageTag.test(description) &&
+		!htmlImageTag.test(description) && // TODO: check "src" attribute
+		!htmlVideoTag.test(description) && // TODO: check "src" attribute
+		!gitHubVideoURL.test(description)
+	) {
+		if (requiredGraphicsOnFiles === '.*') {
+			// Avoid reaching GitHub API rate limit
+			fail('A screenshot or video is always required in the description')
 
-			} else if (typeof requiredGraphicsOnFiles === 'string') {
-				const filePattern = new RegExp(requiredGraphicsOnFiles, 'i')
+		} else if (requiredGraphicsOnFiles) {
+			const filePattern = new RegExp(requiredGraphicsOnFiles, 'i')
 
-				let pageIndex = 0
-				while (++pageIndex) {
-					const { data: files } = await octokit.rest.pulls.listFiles({
-						...repo,
-						pull_number: pull.number,
-						page: pageIndex,
-					})
-					if (!Array.isArray(files) || files.length === 0) {
-						break
-					}
-
-					const graphicFile = files.find(file => file.status !== 'deleted' && filePattern.test(file.filename))
-					if (graphicFile) {
-						fail('A screenshot or video is required in the description because of ' + graphicFile.filename)
-						break
-					}
+			let pageIndex = 0
+			while (++pageIndex) {
+				const { data: files } = await octokit.rest.pulls.listFiles({
+					...repo,
+					pull_number: pull.number,
+					page: pageIndex,
+				})
+				if (!Array.isArray(files) || files.length === 0) {
+					break
 				}
-			} else if (typeof requiredGraphicsOnTitle === 'string') {
-				const titlePattern = new RegExp(requiredGraphicsOnTitle)
-				if (titlePattern.test(pull.title)) {
-					fail('A screenshot or video is required in the description because the title matches ' + titlePattern.source)
+
+				const graphicFile = files.find(file => file.status !== 'deleted' && filePattern.test(file.filename))
+				if (graphicFile) {
+					fail('A screenshot or video is required in the description because of ' + graphicFile.filename)
+					break
 				}
+			}
+		}
+
+		if (requiredGraphicsOnTitle) {
+			const titlePattern = new RegExp(requiredGraphicsOnTitle)
+			if (titlePattern.test(pull.title)) {
+				fail('A screenshot or video is required in the description because the title matches ' + titlePattern.source)
 			}
 		}
 	}
@@ -115,7 +115,7 @@ export default async function entry({ pull, repo, core, octokit, skip, fail }) {
 
 function toArray(newLineSeparatedText) {
 	if (typeof newLineSeparatedText !== 'string') {
-		return undefined
+		return []
 	}
 
 	return compact(newLineSeparatedText.trim().split('\n'))
