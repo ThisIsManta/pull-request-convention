@@ -20,5 +20,5 @@ inputs:
     description: 'Verify if the PR description has at least one screenshot or video when this regular expression matching against one or more file name'
     required: false
 runs:
-  using: 'node16'
+  using: 'node18'
   main: 'dist/index.js'
