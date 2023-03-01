@@ -21,5 +21,9 @@
     "lodash": "^4.17.21",
     "ts-jest": "^29.0.5",
     "typescript": "^4.9.5"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "resetMocks": true
   }
 }
