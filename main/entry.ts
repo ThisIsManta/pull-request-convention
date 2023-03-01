@@ -3,9 +3,16 @@ import truncate from 'lodash/truncate'
 
 export default async function entry({
 	pull,
-	repo,
 	core,
 	getPullTemplate,
+}: {
+	pull: {
+		title: string
+		body: string
+		labels: Array<{ name: string }>
+	}
+	core: Pick<typeof import('@actions/core'), 'getInput' | 'setFailed' | 'info' | 'error' | 'debug'>
+	getPullTemplate: () => Promise<string>
 }) {
 	if (!pull) {
 		core.setFailed('The pull request information could not be found. Please make sure that the action is triggered on "pull_request" event.')
@@ -13,7 +20,7 @@ export default async function entry({
 	}
 
 	const template = await getPullTemplate()
-	core.debug('template »', template)
+	core.debug('template »' + template)
 
 	const titlePattern = /^(\w+)(\(.*?\))?(\!)?:(.+)/
 	const [, type, scope, breaking, subject] = pull.title.match(titlePattern) || []
@@ -34,12 +41,12 @@ export default async function entry({
 		typeof type === 'string' && typeof subject !== 'string' &&
 		'The subject in a pull request title must be provided.',
 
-		typeof subject === 'string' && (subject.startsWith(' ') === false || subject.match(/^ +/)[0].length > 1) &&
+		typeof subject === 'string' && (subject.match(/^ +/)?.[0].length || 0) !== 1 &&
 		'A single space must be after ":" symbol.',
 
 		typeof subject === 'string' && /^[a-z]/.test(subject.trim()) === false &&
 		'The subject must start with a lower case latin alphabet.',
-	].filter(error => typeof error === 'string')
+	].filter((error): error is string => typeof error === 'string')
 	if (titleErrors.length > 0) {
 		core.info('The pull request title must match the pattern of "<type>[!]: <subject>" which is a reduced set of https://www.conventionalcommits.org/en/v1.0.0/')
 		for (const message of titleErrors) {
@@ -125,7 +132,7 @@ export default async function entry({
 	}
 }
 
-function toArray(newLineSeparatedText) {
+function toArray(newLineSeparatedText: string | undefined) {
 	if (typeof newLineSeparatedText !== 'string') {
 		return []
 	}
@@ -135,7 +142,7 @@ function toArray(newLineSeparatedText) {
 		.filter(line => line.length > 0)
 }
 
-function getSections(description) {
+function getSections(description: string) {
 	return description
 		.split(/^#+/m)
 		.slice(1)
@@ -149,15 +156,15 @@ function getSections(description) {
 		.filter(({ head }) => head.length > 0)
 }
 
-function getChecklistItems(description) {
+function getChecklistItems(description: string) {
 	return description
 		.split('\n')
 		.map(line => line.trim().match(/^- \[(?<mark>x| )\] (?<text>.+)/))
-		.filter(item => !!item)
+		.filter((item): item is any => !!item)
 		.map(({ groups }) => ({ text: groups.text, checked: groups.mark === 'x' }))
 }
 
-function stripHTMLComments(description) {
+function stripHTMLComments(description: string) {
 	return description
 		.replace(/(?=<!--)([\s\S]*?)-->/gm, '')
 		.trim()

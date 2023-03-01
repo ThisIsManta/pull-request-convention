@@ -1,13 +1,10 @@
 import { jest, expect, it } from '@jest/globals'
-import { default as entryOriginal } from './entry.mjs'
+import { default as entryOriginal } from './entry'
 
 const core = {
-	getInput: jest.fn(),
-	getBooleanInput: jest.fn(),
+	getInput: jest.fn((key: string) => ''),
 	setFailed: jest.fn(),
 	info: jest.fn(),
-	notice: jest.fn(),
-	warning: jest.fn(),
 	error: jest.fn(),
 	debug: jest.fn(),
 }
@@ -18,21 +15,16 @@ const pull = {
 	labels: [],
 }
 
-const entry = (overriding) => {
+const entry = (overriding: Partial<Parameters<typeof entryOriginal>[0]>) => {
 	jest.clearAllMocks()
 
 	return entryOriginal({
 		pull,
-		repo: {},
 		core,
 		getPullTemplate: async () => '',
 		...overriding
 	})
 }
-
-afterEach(() => {
-	jest.resetAllMocks()
-})
 
 it('throws given no pull request information', async () => {
 	await entry({
@@ -312,6 +304,8 @@ describe('exclusive-labels', () => {
 					ready-to-merge
 				`
 			}
+
+			return ''
 		})
 
 		await entry({
@@ -329,6 +323,8 @@ describe('exclusive-labels', () => {
 					ready-to-merge
 				`
 			}
+
+			return ''
 		})
 
 		await entry({
