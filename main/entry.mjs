@@ -1,36 +1,142 @@
-import compact from 'lodash/compact'
 import difference from 'lodash/difference'
-import escapeRegExp from 'lodash/escapeRegExp'
+import truncate from 'lodash/truncate'
 
-export default async function entry({ pull, repo, core, octokit, skip, fail }) {
-	if (pull.draft) {
-		skip('A draft PR is not ready to be checked.')
+export default async function entry({
+	pull,
+	repo,
+	core,
+	getPullTemplate,
+}) {
+	if (!pull) {
+		core.setFailed('The pull request information could not be found. Please make sure that the action is triggered on "pull_request" event.')
 		return
 	}
 
-	const titleRule = core.getInput('title')
-	if (titleRule) {
-		const titleValidator = new RegExp(titleRule)
-		if (!titleValidator.test(pull.title)) {
-			fail('Pull request title must conform to ' + titleRule + '.')
+	const template = await getPullTemplate()
+	core.debug('template »', template)
+
+	const titlePattern = /^(\w+)(\(.*?\))?(\!)?:(.+)/
+	const [, type, scope, breaking, subject] = pull.title.match(titlePattern) || []
+	core.debug(JSON.stringify({ type, scope, breaking, subject }, null, 2))
+
+	const allowedTypes = ['feat', 'fix', 'test', 'refactor', 'chore']
+
+	const titleErrors = [
+		allowedTypes.includes(type) === false &&
+		'The type in a pull request title must be one of ' + allowedTypes.map(name => '"' + name + '"').join(', ') + '.',
+
+		typeof type === 'string' && /^[a-z]+$/.test(type) === false &&
+		'The type in a pull request title must be in lower case only.',
+
+		scope &&
+		'A scope in a pull request title is never allowed.',
+
+		typeof type === 'string' && typeof subject !== 'string' &&
+		'The subject in a pull request title must be provided.',
+
+		typeof subject === 'string' && (subject.startsWith(' ') === false || subject.match(/^ +/)[0].length > 1) &&
+		'A single space must be after ":" symbol.',
+
+		typeof subject === 'string' && /^[a-z]/.test(subject.trim()) === false &&
+		'The subject must start with a lower case latin alphabet.',
+	].filter(error => typeof error === 'string')
+	if (titleErrors.length > 0) {
+		core.info('The pull request title must match the pattern of "<type>[!]: <subject>" which is a reduced set of https://www.conventionalcommits.org/en/v1.0.0/')
+		for (const message of titleErrors) {
+			core.setFailed(message)
 		}
 	}
 
 	const exclusiveLabels = toArray(core.getInput('exclusive-labels'))
 	if (exclusiveLabels.length > 0) {
-		const foundLabels = pull.labels.filter(label => exclusiveLabels.includes(label.name))
+		const foundLabels = pull.labels
+			.map(label => label.name)
+			.filter(name => exclusiveLabels.includes(name))
 		if (foundLabels.length === 0) {
-			fail('One of the following pull request labels must be chosen: ' + exclusiveLabels.join(', ') + '.')
+			core.setFailed('The added labels must be one of ' + exclusiveLabels.map(name => '"' + name + '"').join(', ') + '.')
 		} else if (foundLabels.length > 1) {
-			fail('The following pull request labels could not co-exist: ' + foundLabels.join(', ') + '.')
+			core.setFailed('The following labels could not co-exist: ' + foundLabels.map(name => '"' + name + '"').join(', ') + '.')
 		}
 	}
 
-	const description = pull.body
-		.replace(/<!--.+?-->/g, '') // Strip out Markdown comments
-		.trim()
+	const description = stripHTMLComments(pull.body)
 
-	const sections = description
+	const foundSections = getSections(description)
+
+	const requiredSections = getSections(template)
+	if (requiredSections.length > 0) {
+		const missingSections = difference(
+			requiredSections.map(section => section.head),
+			foundSections.map(section => section.head)
+		)
+		for (const name of missingSections) {
+			core.setFailed(`The heading "${name}" must be in the description.`)
+		}
+	}
+
+	const emptySections = foundSections.filter(section => section.body.length === 0).map(section => section.head)
+	for (const name of emptySections) {
+		core.setFailed(`The heading "${name}" must be followed by some content.`)
+	}
+
+	const requiredChecklists = getChecklistItems(template)
+		.filter(({ text }) => /<!--\s*REQUIRED\s*-->/i.test(text))
+		.map(({ text }) => stripHTMLComments(text))
+	if (requiredChecklists.length > 0) {
+		const foundChecklistItems = getChecklistItems(description)
+
+		const missingChecklists = difference(
+			requiredChecklists,
+			foundChecklistItems.map(({ text }) => text)
+		)
+		if (missingChecklists.length > 0) {
+			core.info('See https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#task-lists')
+			for (const name of missingChecklists) {
+				core.setFailed(`The checklist item "${truncate(name, { length: 30, separator: /,?\s+/ })}" must be in the description.`)
+			}
+		}
+
+		const uncompletedChecklists = foundChecklistItems
+			.filter(({ checked, text }) => checked === false && requiredChecklists.includes(text))
+			.map(({ text }) => text)
+		for (const name of uncompletedChecklists) {
+			core.setFailed(`The checklist item "${truncate(name, { length: 30, separator: /,?\s+/ })}" must be checked.`)
+		}
+	}
+
+	const markdownImageTag = /!\[[^\]]*\]\((.*?)\s*("(?:.*[^"])")?\s*\)/m
+	const htmlImageTag = /\<img\W(.|\r?\n)*?\>/m
+	const htmlVideoTag = /\<video\W(.|\r?\n)*?\>/m
+	const gitHubVideoURL = /https:\/\/user-images\.githubusercontent\.com(?:\/[a-zA-Z0-9\-]+?)+?\.(?:mp4|mov)/mi
+
+	const graphicRequiredTypes = ['feat', 'fix']
+	if (
+		graphicRequiredTypes.includes(type) &&
+		!markdownImageTag.test(description) &&
+		!htmlImageTag.test(description) && // TODO: check "src" attribute
+		!htmlVideoTag.test(description) && // TODO: check "src" attribute
+		!gitHubVideoURL.test(description)
+	) {
+		core.setFailed('A screenshot or video is required in the description because the PR title is the type of "' + graphicRequiredTypes[graphicRequiredTypes.indexOf(type)] + '".')
+	}
+
+	if (pull.labels.some(label => label.name === 'do-not-merge')) {
+		core.setFailed('The label "do-not-merge" must be removed in order to proceed merging the pull request.')
+	}
+}
+
+function toArray(newLineSeparatedText) {
+	if (typeof newLineSeparatedText !== 'string') {
+		return []
+	}
+
+	return newLineSeparatedText.split('\n')
+		.map(line => line.trim())
+		.filter(line => line.length > 0)
+}
+
+function getSections(description) {
+	return description
 		.split(/^#+/m)
 		.slice(1)
 		.map(text => {
@@ -41,82 +147,18 @@ export default async function entry({ pull, repo, core, octokit, skip, fail }) {
 			}
 		})
 		.filter(({ head }) => head.length > 0)
-
-	const requiredSections = toArray(core.getInput('required-sections'))
-	if (requiredSections.length > 0) {
-		const missingSections = difference(requiredSections, sections.map(section => section.head))
-		if (missingSections.length > 0) {
-			fail('The following sections must be presented in the description:' + missingSections.map(text => '\n - ' + text).join(''))
-		}
-	}
-
-	const emptySections = sections.filter(section => section.body.length === 0).map(section => section.head)
-	if (emptySections.length > 0) {
-		fail('The following sections must not be empty:' + emptySections.map(text => '\n - ' + text).join(''))
-	}
-
-	const requiredChecklists = toArray(core.getInput('required-checklists'))
-	if (requiredChecklists.length > 0) {
-		const uncompletedChecklists = requiredChecklists.filter(text =>
-			new RegExp('^' + escapeRegExp('- [x] ' + text), 'm').test(description) === false
-		)
-		if (uncompletedChecklists.length > 0) {
-			fail('The following checklist items must be checked:' + uncompletedChecklists.map(text => '\n - ' + text).join(''))
-		}
-	}
-
-	const requiredGraphicsOnTitle = core.getInput('required-graphics-on-title')
-	const requiredGraphicsOnFiles = core.getInput('required-graphics-on-files')
-	const markdownImageTag = /!\[[^\]]*\]\((.*?)\s*("(?:.*[^"])")?\s*\)/m
-	const htmlImageTag = /\<img\W(.|\r?\n)*?\>/m
-	const htmlVideoTag = /\<video\W(.|\r?\n)*?\>/m
-	const gitHubVideoURL = /https:\/\/user-images\.githubusercontent\.com(?:\/[a-zA-Z0-9\-]+?)+?\.(?:mp4|mov)/mi
-
-	if (
-		!markdownImageTag.test(description) &&
-		!htmlImageTag.test(description) && // TODO: check "src" attribute
-		!htmlVideoTag.test(description) && // TODO: check "src" attribute
-		!gitHubVideoURL.test(description)
-	) {
-		if (requiredGraphicsOnFiles === '.*') {
-			// Avoid reaching GitHub API rate limit
-			fail('A screenshot or video is always required in the description')
-
-		} else if (requiredGraphicsOnFiles) {
-			const filePattern = new RegExp(requiredGraphicsOnFiles, 'i')
-
-			let pageIndex = 0
-			while (++pageIndex) {
-				const { data: files } = await octokit.rest.pulls.listFiles({
-					...repo,
-					pull_number: pull.number,
-					page: pageIndex,
-				})
-				if (!Array.isArray(files) || files.length === 0) {
-					break
-				}
-
-				const graphicFile = files.find(file => file.status !== 'deleted' && filePattern.test(file.filename))
-				if (graphicFile) {
-					fail('A screenshot or video is required in the description because of ' + graphicFile.filename)
-					break
-				}
-			}
-		}
-
-		if (requiredGraphicsOnTitle) {
-			const titlePattern = new RegExp(requiredGraphicsOnTitle)
-			if (titlePattern.test(pull.title)) {
-				fail('A screenshot or video is required in the description because the title matches ' + titlePattern.source)
-			}
-		}
-	}
 }
 
-function toArray(newLineSeparatedText) {
-	if (typeof newLineSeparatedText !== 'string') {
-		return []
-	}
+function getChecklistItems(description) {
+	return description
+		.split('\n')
+		.map(line => line.trim().match(/^- \[(?<mark>x| )\] (?<text>.+)/))
+		.filter(item => !!item)
+		.map(({ groups }) => ({ text: groups.text, checked: groups.mark === 'x' }))
+}
 
-	return compact(newLineSeparatedText.trim().split('\n'))
+function stripHTMLComments(description) {
+	return description
+		.replace(/(?=<!--)([\s\S]*?)-->/gm, '')
+		.trim()
 }

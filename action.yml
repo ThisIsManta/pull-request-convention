@@ -1,24 +1,9 @@
 name: 'Pull Request Conventions'
 description: 'Check pull request conventions'
 inputs:
-  title:
-    description: 'Verify if the PR title matches this regular expression'
-    required: false
   exclusive-labels:
-    description: 'Verify if the PR labels contain one of the labels listed in this newline-separated list'
-    required: false
-  required-sections:
-    description: 'Verify if the PR description contains # sections according to this newline-separated list'
-    required: false
-  required-checklists:
-    description: 'Verify if the PR description has the checklist ticked [x] for this newline-separated list representing checklist items'
-    required: false
-  required-graphics-on-title:
-    description: 'Verify if the PR description has at least one screenshot or video when this regular expression matching against the PR title'
-    required: false
-  required-graphics-on-files:
-    description: 'Verify if the PR description has at least one screenshot or video when this regular expression matching against one or more file name'
+    description: 'Verify if the PR has exactly one label of the labels listed in this newline-separated list'
     required: false
 runs:
-  using: 'node18'
+  using: 'node16'
   main: 'dist/index.js'
