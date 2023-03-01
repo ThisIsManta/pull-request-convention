@@ -1,5 +1,6 @@
 import difference from 'lodash/difference'
 import truncate from 'lodash/truncate'
+import { checkConventionalMessage } from '@thisismanta/semantic-version'
 
 export default async function entry({
 	pull,
@@ -22,35 +23,10 @@ export default async function entry({
 	const template = await getPullTemplate()
 	core.debug('template »' + template)
 
-	const titlePattern = /^(\w+)(\(.*?\))?(\!)?:(.+)/
-	const [, type, scope, breaking, subject] = pull.title.match(titlePattern) || []
-	core.debug(JSON.stringify({ type, scope, breaking, subject }, null, 2))
-
-	const allowedTypes = ['feat', 'fix', 'test', 'refactor', 'chore']
-
-	const titleErrors = [
-		allowedTypes.includes(type) === false &&
-		'The type in a pull request title must be one of ' + allowedTypes.map(name => '"' + name + '"').join(', ') + '.',
-
-		typeof type === 'string' && /^[a-z]+$/.test(type) === false &&
-		'The type in a pull request title must be in lower case only.',
-
-		scope &&
-		'A scope in a pull request title is never allowed.',
-
-		typeof type === 'string' && typeof subject !== 'string' &&
-		'The subject in a pull request title must be provided.',
-
-		typeof subject === 'string' && (subject.match(/^ +/)?.[0].length || 0) !== 1 &&
-		'A single space must be after ":" symbol.',
-
-		typeof subject === 'string' && /^[a-z]/.test(subject.trim()) === false &&
-		'The subject must start with a lower case latin alphabet.',
-	].filter((error): error is string => typeof error === 'string')
+	const { type, errors: titleErrors } = checkConventionalMessage(pull.title, core)
 	if (titleErrors.length > 0) {
-		core.info('The pull request title must match the pattern of "<type>[!]: <subject>" which is a reduced set of https://www.conventionalcommits.org/en/v1.0.0/')
-		for (const message of titleErrors) {
-			core.setFailed(message)
+		for (const text of titleErrors) {
+			core.setFailed(text)
 		}
 	}
 
@@ -111,20 +87,23 @@ export default async function entry({
 		}
 	}
 
-	const markdownImageTag = /!\[[^\]]*\]\((.*?)\s*("(?:.*[^"])")?\s*\)/m
-	const htmlImageTag = /\<img\W(.|\r?\n)*?\>/m
-	const htmlVideoTag = /\<video\W(.|\r?\n)*?\>/m
-	const gitHubVideoURL = /https:\/\/user-images\.githubusercontent\.com(?:\/[a-zA-Z0-9\-]+?)+?\.(?:mp4|mov)/mi
+	if (typeof type === 'string') {
+		const markdownImageTag = /!\[[^\]]*\]\((.*?)\s*("(?:.*[^"])")?\s*\)/m
+		const htmlImageTag = /\<img\W(.|\r?\n)*?\>/m
+		const htmlVideoTag = /\<video\W(.|\r?\n)*?\>/m
+		const gitHubVideoURL = /https:\/\/user-images\.githubusercontent\.com(?:\/[a-zA-Z0-9\-]+?)+?\.(?:mp4|mov)/mi
 
-	const graphicRequiredTypes = ['feat', 'fix']
-	if (
-		graphicRequiredTypes.includes(type) &&
-		!markdownImageTag.test(description) &&
-		!htmlImageTag.test(description) && // TODO: check "src" attribute
-		!htmlVideoTag.test(description) && // TODO: check "src" attribute
-		!gitHubVideoURL.test(description)
-	) {
-		core.setFailed('A screenshot or video is required in the description because the PR title is the type of "' + graphicRequiredTypes[graphicRequiredTypes.indexOf(type)] + '".')
+		const graphicRequiredTypes = ['feat', 'fix']
+
+		if (
+			graphicRequiredTypes.includes(type) &&
+			!markdownImageTag.test(description) &&
+			!htmlImageTag.test(description) && // TODO: check "src" attribute
+			!htmlVideoTag.test(description) && // TODO: check "src" attribute
+			!gitHubVideoURL.test(description)
+		) {
+			core.setFailed('A screenshot or video is required in the description because the PR title is the type of "' + graphicRequiredTypes[graphicRequiredTypes.indexOf(type)] + '".')
+		}
 	}
 
 	if (pull.labels.some(label => label.name === 'do-not-merge')) {

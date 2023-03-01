@@ -5,14 +5,13 @@
   "license": "MIT",
   "scripts": {
     "test": "tsc && jest",
-    "build": "esbuild main/index.ts --bundle --outfile=dist/index.js --platform=node --target=node16 --minify",
-    "preversion": "npm test && npm run build && git add dist/*",
-    "postversion": "git push --tags origin master"
+    "build": "esbuild main/index.ts --bundle --outfile=dist/index.js --platform=node --target=node16 --minify"
   },
   "devDependencies": {
     "@actions/core": "^1.10.0",
     "@actions/github": "^5.1.1",
     "@octokit/webhooks-definitions": "^3.67.3",
+    "@thisismanta/semantic-version": "^1.0.5",
     "@types/jest": "^29.4.0",
     "@types/lodash": "^4.14.191",
     "@types/node": "^16.0.0",

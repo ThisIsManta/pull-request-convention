@@ -38,74 +38,11 @@ it('throws if the PR title violates the convention', async () => {
 	await entry({
 		pull: {
 			...pull,
-			title: 'chore: xxx'
-		},
-	})
-
-	expect(core.setFailed).not.toHaveBeenCalled()
-
-	await entry({
-		pull: {
-			...pull,
-			title: 'chore!: xxx'
-		},
-	})
-
-	expect(core.setFailed).not.toHaveBeenCalled()
-
-	await entry({
-		pull: {
-			...pull,
 			title: 'xxx'
 		},
 	})
 
-	expect(core.setFailed).toHaveBeenCalledWith('The type in a pull request title must be one of \"feat\", \"fix\", \"test\", \"refactor\", \"chore\".')
-
-	await entry({
-		pull: {
-			...pull,
-			title: 'unknown: xxx'
-		},
-	})
-
-	expect(core.setFailed).toHaveBeenCalledWith('The type in a pull request title must be one of \"feat\", \"fix\", \"test\", \"refactor\", \"chore\".')
-
-	await entry({
-		pull: {
-			...pull,
-			title: 'CHORE: xxx'
-		},
-	})
-
-	expect(core.setFailed).toHaveBeenCalledWith('The type in a pull request title must be in lower case only.')
-
-	await entry({
-		pull: {
-			...pull,
-			title: 'chore:xxx'
-		},
-	})
-
-	expect(core.setFailed).toHaveBeenCalledWith('A single space must be after ":" symbol.')
-
-	await entry({
-		pull: {
-			...pull,
-			title: 'chore: Xxx'
-		},
-	})
-
-	expect(core.setFailed).toHaveBeenCalledWith('The subject must start with a lower case latin alphabet.')
-
-	await entry({
-		pull: {
-			...pull,
-			title: 'chore(scope): xxx'
-		},
-	})
-
-	expect(core.setFailed).toHaveBeenCalledWith('A scope in a pull request title is never allowed.')
+	expect(core.setFailed).toHaveBeenCalledWith('The pull request title must match the pattern of "<type>[!]: <subject>" which is a reduced set of https://www.conventionalcommits.org/en/v1.0.0/')
 })
 
 it('throws if the PR title is feat/fix but no graphics in the PR description', async () => {

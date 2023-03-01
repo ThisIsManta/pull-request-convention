@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+npm run test --silent --ci --passWithNoTests
+
+npm run build
+git add dist/*
