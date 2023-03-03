@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import type { PullRequest } from '@octokit/webhooks-definitions/schema'
+import type { PullRequest } from '@octokit/webhooks-types'
 import entry from './entry'
 import * as fs from 'fs/promises'
 import * as fp from 'path'

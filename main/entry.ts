@@ -9,7 +9,7 @@ export default async function entry({
 }: {
 	pull: {
 		title: string
-		body: string
+		body: string | null
 		labels: Array<{ name: string }>
 	}
 	core: Pick<typeof import('@actions/core'), 'getInput' | 'setFailed' | 'info' | 'error' | 'debug'>
@@ -42,7 +42,7 @@ export default async function entry({
 		}
 	}
 
-	const description = stripHTMLComments(pull.body)
+	const description = stripHTMLComments(pull.body || '')
 
 	const foundSections = getSections(description)
 

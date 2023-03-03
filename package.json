@@ -3,15 +3,19 @@
   "version": "4.0.0",
   "author": "Anantachai Saothong <thisismanta@gmail.com>",
   "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "scripts": {
     "test": "tsc && jest",
-    "build": "esbuild main/index.ts --bundle --outfile=dist/index.js --platform=node --target=node16 --minify"
+    "build": "esbuild main/index.ts --bundle --outfile=dist/index.js --platform=node --target=node16 --minify",
+    "preversion": "npm run build && git add dist/*"
   },
   "devDependencies": {
     "@actions/core": "^1.10.0",
     "@actions/github": "^5.1.1",
-    "@octokit/webhooks-definitions": "^3.67.3",
-    "@thisismanta/semantic-version": "^1.0.5",
+    "@octokit/webhooks-types": "^6.10.0",
+    "@thisismanta/semantic-version": "2.0.0",
     "@types/jest": "^29.4.0",
     "@types/lodash": "^4.14.191",
     "@types/node": "^16.0.0",

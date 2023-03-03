@@ -1,0 +1,22 @@
+on:
+  push:
+    branches: [master]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx auto-npm-version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
