@@ -15,7 +15,7 @@ jobs:
           node-version-file: 'package.json'
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts
 
       - run: npx auto-npm-version
         env:
