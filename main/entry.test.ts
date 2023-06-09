@@ -59,6 +59,16 @@ it('throws if the PR title is feat/fix but no graphics in the PR description', a
 	await entry({
 		pull: {
 			...pull,
+			title: 'feat: xxx',
+			body: 'https://github.com/taskworld/tw-frontend/assets/5592654/76a88f74-a49c-448d-8d5b-6be42c024ba9',
+		},
+	})
+
+	expect(core.setFailed).not.toHaveBeenCalled()
+
+	await entry({
+		pull: {
+			...pull,
 			title: 'chore: xxx',
 			body: '',
 		},
@@ -74,7 +84,9 @@ it('throws if the PR title is feat/fix but no graphics in the PR description', a
 		},
 	})
 
-	expect(core.setFailed).toHaveBeenCalledWith('A screenshot or video is required in the description because the PR title is the type of "feat".')
+	expect(core.setFailed).toHaveBeenLastCalledWith('A screenshot or a video is required in the description because the PR title has the type of "feat" or "fix".')
+
+	core.setFailed.mockClear()
 
 	await entry({
 		pull: {
@@ -84,7 +96,7 @@ it('throws if the PR title is feat/fix but no graphics in the PR description', a
 		},
 	})
 
-	expect(core.setFailed).toHaveBeenCalledWith('A screenshot or video is required in the description because the PR title is the type of "fix".')
+	expect(core.setFailed).toHaveBeenLastCalledWith('A screenshot or a video is required in the description because the PR title has the type of "feat" or "fix".')
 })
 
 it('throws if the PR has "do-not-merge" label', async () => {

@@ -91,7 +91,7 @@ export default async function entry({
 		const markdownImageTag = /!\[[^\]]*\]\((.*?)\s*("(?:.*[^"])")?\s*\)/m
 		const htmlImageTag = /\<img\W(.|\r?\n)*?\>/m
 		const htmlVideoTag = /\<video\W(.|\r?\n)*?\>/m
-		const gitHubVideoURL = /https:\/\/user-images\.githubusercontent\.com(?:\/[a-zA-Z0-9\-]+?)+?\.(?:mp4|mov)/mi
+		const gitHubAssetURL = /https:\/\/user-images\.githubusercontent\.com(?:\/[a-zA-Z0-9\-]+?)+?\.(?:mp4|mov)|https:\/\/github\.com\/[\-a-z0-9]+\/[\-a-z0-9]+\/assets\/\d+\//mi
 
 		const graphicRequiredTypes = ['feat', 'fix']
 
@@ -100,9 +100,9 @@ export default async function entry({
 			!markdownImageTag.test(description) &&
 			!htmlImageTag.test(description) && // TODO: check "src" attribute
 			!htmlVideoTag.test(description) && // TODO: check "src" attribute
-			!gitHubVideoURL.test(description)
+			!gitHubAssetURL.test(description)
 		) {
-			core.setFailed('A screenshot or video is required in the description because the PR title is the type of "' + graphicRequiredTypes[graphicRequiredTypes.indexOf(type)] + '".')
+			core.setFailed(`A screenshot or a video is required in the description because the PR title has the type of ${graphicRequiredTypes.map(type => `"${type}"`).join(' or ')}.`)
 		}
 	}
 
