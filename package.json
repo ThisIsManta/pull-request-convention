@@ -8,22 +8,23 @@
   },
   "scripts": {
     "test": "tsc && jest",
-    "build": "esbuild main/index.ts --bundle --outfile=dist/index.js --platform=node --target=node16 --minify",
+    "build": "esbuild main/index.ts --bundle --outfile=dist/index.js --platform=node --target=node20 --minify",
     "preversion": "npm run build && git add dist/*"
   },
   "devDependencies": {
-    "@actions/core": "^1.10.0",
-    "@actions/github": "^5.1.1",
-    "@octokit/webhooks-types": "^6.10.0",
-    "@thisismanta/semantic-version": "^5.0.2",
-    "@types/jest": "^29.4.0",
-    "@types/lodash": "^4.14.191",
+    "@actions/core": "^1.10.1",
+    "@actions/github": "^6.0.0",
+    "@octokit/webhooks-types": "^7.3.1",
+    "@thisismanta/semantic-version": "^7.0.0",
+    "@types/jest": "^29.5.11",
+    "@types/lodash": "^4.14.202",
     "@types/node": "<=20.11.0",
-    "esbuild": "^0.17.10",
-    "jest": "^29.4.3",
+    "esbuild": "^0.20.0",
+    "jest": "^29.7.0",
+    "lefthook": "^1.6.1",
     "lodash": "^4.17.21",
-    "ts-jest": "^29.0.5",
-    "typescript": "^4.9.5"
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.3.3"
   },
   "jest": {
     "preset": "ts-jest",
