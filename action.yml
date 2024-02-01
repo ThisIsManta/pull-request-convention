@@ -5,5 +5,5 @@ inputs:
     description: 'Verify if the PR has exactly one label of the labels listed in this newline-separated list'
     required: false
 runs:
-  using: 'node16'
+  using: 'node20'
   main: 'dist/index.js'
