@@ -69,6 +69,16 @@ it('throws if the PR title is feat/fix but no graphics in the PR description', a
 	await entry({
 		pull: {
 			...pull,
+			title: 'feat: xxx',
+			body: 'https://github.com/user-attachments/assets/4ef10e40-c39a-4100-8961-1a9e720ab016',
+		},
+	})
+
+	expect(core.setFailed).not.toHaveBeenCalled()
+
+	await entry({
+		pull: {
+			...pull,
 			title: 'chore: xxx',
 			body: '',
 		},

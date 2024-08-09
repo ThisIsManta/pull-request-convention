@@ -91,7 +91,7 @@ export default async function entry({
 		const markdownImageTag = /!\[[^\]]*\]\((.*?)\s*("(?:.*[^"])")?\s*\)/m
 		const htmlImageTag = /\<img\W(.|\r?\n)*?\>/m
 		const htmlVideoTag = /\<video\W(.|\r?\n)*?\>/m
-		const gitHubAssetURL = /https:\/\/user-images\.githubusercontent\.com(?:\/[a-zA-Z0-9\-]+?)+?\.(?:mp4|mov)|https:\/\/github\.com\/[\-a-z0-9]+\/[\-a-z0-9]+\/assets\/\d+\//mi
+		const gitHubAssetURL = /https:\/\/user-images\.githubusercontent\.com(?:\/[a-zA-Z0-9\-]+?)+?\.(?:mp4|mov)|https:\/\/github\.com\/[\-a-z0-9]+\/[\-a-z0-9]+\/assets\/[\-a-f0-9]+\/|https:\/\/github\.com\/user-attachments\/assets\/[\-a-f0-9]+/mi
 
 		const graphicRequiredTypes = ['feat', 'fix']
 
