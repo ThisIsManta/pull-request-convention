@@ -6,17 +6,17 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
           cache: npm
 
       - run: npm ci --ignore-scripts
 
-      - run: npx auto-npm-version
+      - run: npx make-next-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

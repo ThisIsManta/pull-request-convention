@@ -23,7 +23,7 @@ export default async function entry({
 	const template = await getPullTemplate()
 	core.debug('template »' + template)
 
-	const { type, errors: titleErrors } = checkConventionalMessage(pull.title, core)
+	const { type, errors: titleErrors } = checkConventionalMessage(pull.title)
 	if (titleErrors.length > 0) {
 		for (const text of titleErrors) {
 			core.setFailed(text)

@@ -1,3 +1,7 @@
+post-checkout:
+  commands:
+    install:
+      run: npm install --silent
 pre-commit:
   parallel: true
   commands:

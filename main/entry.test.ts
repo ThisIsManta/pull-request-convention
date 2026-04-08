@@ -1,4 +1,4 @@
-import { jest, expect, it } from '@jest/globals'
+import { jest, expect, it, describe } from '@jest/globals'
 import { default as entryOriginal } from './entry'
 
 const core = {
