@@ -8,3 +8,7 @@ pre-commit:
     test:
       glob: "main/*"
       run: npm run test -- --silent --ci
+commit-msg:
+  commands:
+    lint:
+      run: npm exec lint-commit-message {1}
