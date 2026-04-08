@@ -214,7 +214,7 @@ Content goes here
 	expect(core.setFailed).toHaveBeenCalledWith('The checklist item "xxx" must be in the description.')
 })
 
-it('throws if the required checklists are not checked', async () => {
+it('throws if the required checklists are not checked, given a template', async () => {
 	await entry({
 		pull: {
 			...pull,
@@ -252,6 +252,22 @@ it('throws if the required checklists are not checked', async () => {
 	})
 
 	expect(core.setFailed).not.toHaveBeenCalled()
+})
+
+it('throws if the required checklists are not checked, given as-is PR description when a template is not accessible', async () => {
+	await entry({
+		pull: {
+			...pull,
+			body: `
+### Solutions
+- [ ] www <!-- required -->
+- [ ] xxx
+			`,
+		},
+		getPullTemplate: async () => ''
+	})
+
+	expect(core.setFailed).toHaveBeenCalled()
 })
 
 describe('exclusive-labels', () => {

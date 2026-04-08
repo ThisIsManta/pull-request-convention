@@ -62,7 +62,7 @@ export default async function entry({
 		core.setFailed(`The heading "${name}" must be followed by some content.`)
 	}
 
-	const requiredChecklists = getChecklistItems(template)
+	const requiredChecklists = getChecklistItems(template || pull.body || '')
 		.filter(({ text }) => /<!--\s*REQUIRED\s*-->/i.test(text))
 		.map(({ text }) => stripHTMLComments(text))
 	if (requiredChecklists.length > 0) {
