@@ -1,3 +1,6 @@
+import * as fs from 'fs/promises'
+import * as fp from 'path'
+import * as github from '@actions/github'
 import difference from 'lodash/difference'
 import truncate from 'lodash/truncate'
 import { checkConventionalMessage } from '@thisismanta/semantic-version'
@@ -5,7 +8,7 @@ import { checkConventionalMessage } from '@thisismanta/semantic-version'
 export default async function entry({
 	pull,
 	core,
-	getPullTemplate,
+	template,
 }: {
 	pull: {
 		title: string
@@ -13,14 +16,13 @@ export default async function entry({
 		labels: Array<{ name: string }>
 	}
 	core: Pick<typeof import('@actions/core'), 'getInput' | 'setFailed' | 'info' | 'error' | 'debug'>
-	getPullTemplate: () => Promise<string>
+	template?: string
 }) {
 	if (!pull) {
 		core.setFailed('The pull request information could not be found. Please make sure that the action is triggered on "pull_request" event.')
 		return
 	}
 
-	const template = await getPullTemplate()
 	core.debug('template »' + template)
 
 	const { type, errors: titleErrors } = checkConventionalMessage(pull.title)
@@ -46,7 +48,7 @@ export default async function entry({
 
 	const foundSections = getSections(description)
 
-	const requiredSections = getSections(template)
+	const requiredSections = getSections(template ?? '')
 	if (requiredSections.length > 0) {
 		const missingSections = difference(
 			requiredSections.map(section => section.head),
@@ -62,7 +64,7 @@ export default async function entry({
 		core.setFailed(`The heading "${name}" must be followed by some content.`)
 	}
 
-	const requiredChecklists = getChecklistItems(template || pull.body || '')
+	const requiredChecklists = getChecklistItems(template ?? pull.body ?? '')
 		.filter(({ text }) => /<!--\s*REQUIRED\s*-->/i.test(text))
 		.map(({ text }) => stripHTMLComments(text))
 	if (requiredChecklists.length > 0) {
@@ -147,4 +149,40 @@ function stripHTMLComments(description: string) {
 	return description
 		.replace(/(?=<!--)([\s\S]*?)-->/gm, '')
 		.trim()
+}
+
+export async function getPullTemplate(core: Pick<typeof import('@actions/core'), 'debug' | 'isDebug'>) {
+	const path = '.github/PULL_REQUEST_TEMPLATE.md'
+
+	// Try to read the template locally
+	if (process.env.GITHUB_WORKSPACE) {
+		const localPath = fp.join(process.env.GITHUB_WORKSPACE, path)
+		if (await fs.access(localPath).then(() => true).catch(() => false)) {
+			return await fs.readFile(localPath, 'utf-8')
+		}
+	}
+
+	// Try to fetch the template remotely
+	if (process.env.GITHUB_TOKEN) {
+		const octokit = github.getOctokit(process.env.GITHUB_TOKEN)
+
+		try {
+			const response = await octokit.rest.repos.getContent({
+				owner: github.context.repo.owner,
+				repo: github.context.repo.repo,
+				path,
+			})
+			if (core.isDebug()) {
+				core.debug('response »' + JSON.stringify(response, null, 2))
+			}
+
+			if ('type' in response.data && response.data.type === 'file' && typeof response.data.content === 'string') {
+				return Buffer.from(response.data.content, 'base64').toString("utf-8")
+			}
+		} catch (error) {
+			core.debug(String(error))
+		}
+	}
+
+	return undefined
 }

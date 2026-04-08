@@ -1,5 +1,6 @@
-import { vi, expect, it, describe } from 'vitest'
-import { default as entryOriginal } from './entry'
+import * as fp from 'path'
+import { vi, expect, it, describe, beforeEach } from 'vitest'
+import { default as entryOriginal, getPullTemplate } from './entry'
 
 const core = {
 	getInput: vi.fn((key: string) => ''),
@@ -7,6 +8,7 @@ const core = {
 	info: vi.fn(),
 	error: vi.fn(),
 	debug: vi.fn(),
+	isDebug: vi.fn(() => false)
 }
 
 const pull = {
@@ -21,10 +23,39 @@ const entry = (overriding: Partial<Parameters<typeof entryOriginal>[0]>) => {
 	return entryOriginal({
 		pull,
 		core,
-		getPullTemplate: async () => '',
 		...overriding
 	})
 }
+
+beforeEach(() => {
+	vi.clearAllMocks()
+})
+
+vi.mock('@actions/github', () => ({
+	getOctokit: vi.fn(() => ({
+		rest: {
+			repos: {
+				getContent: async () => ({
+					data: {
+						type: 'file',
+						path: '.github/PULL_REQUEST_TEMPLATE.md',
+						encoding: 'base64',
+						content: 'UHVsbCByZXF1ZXN0IHRlbXBsYXRlIHNhbXBsZS4=\n',
+					}
+				})
+			}
+		}
+	})),
+	context: {
+		repo: {
+			owner: 'owner',
+			repo: 'repo'
+		},
+		payload: {
+			pull_request: { number: 1 }
+		}
+	}
+}))
 
 it('throws given no pull request information', async () => {
 	await entry({
@@ -129,7 +160,7 @@ it('throws if the required headings are not found', async () => {
 Content goes here
 			`,
 		},
-		getPullTemplate: async () => `
+		template: `
 ### Problems
 Content goes here
 		`
@@ -142,7 +173,7 @@ Content goes here
 			...pull,
 			body: '',
 		},
-		getPullTemplate: async () => `
+		template: `
 ### Problems
 Content goes here
 		`
@@ -186,7 +217,7 @@ it('throws if the required checklists are not found', async () => {
 			...pull,
 			body: '',
 		},
-		getPullTemplate: async () => `
+		template: `
 - [ ] zzz
 		`
 	})
@@ -202,7 +233,7 @@ it('throws if the required checklists are not found', async () => {
 Content goes here
 			`,
 		},
-		getPullTemplate: async () => `
+		template: `
 - [ ] www <!-- required -->
 - [ ] xxx <!-- Required -->
 - [ ] yyy <!-- REQUIRED -->
@@ -226,7 +257,7 @@ it('throws if the required checklists are not checked, given a template', async 
 - [ ] zzz
 			`,
 		},
-		getPullTemplate: async () => `
+		template: `
 - [ ] www <!-- required -->
 - [ ] xxx <!-- required -->
 - [ ] yyy
@@ -245,7 +276,7 @@ it('throws if the required checklists are not checked, given a template', async 
 - [x] xxx
 			`,
 		},
-		getPullTemplate: async () => `
+		template: `
 - [ ] www <!-- required -->
 - [ ] xxx <!-- required -->
 		`
@@ -264,7 +295,6 @@ it('throws if the required checklists are not checked, given as-is PR descriptio
 - [ ] xxx
 			`,
 		},
-		getPullTemplate: async () => ''
 	})
 
 	expect(core.setFailed).toHaveBeenCalled()
@@ -319,5 +349,43 @@ describe('exclusive-labels', () => {
 		})
 
 		expect(core.setFailed).toHaveBeenCalledWith('The following labels could not co-exist: "review-me", "ready-to-merge".')
+	})
+})
+
+describe(getPullTemplate, () => {
+	it('returns the content of the local template', async () => {
+		process.env.GITHUB_WORKSPACE = fp.resolve(__dirname, '..')
+		delete process.env.GITHUB_TOKEN
+
+		expect(await getPullTemplate(core)).toMatchInlineSnapshot(`"Pull request template sample."`)
+	})
+
+	it('returns the content of the remote template', async () => {
+		delete process.env.GITHUB_WORKSPACE
+		process.env.GITHUB_TOKEN = 'token'
+
+		expect(await getPullTemplate(core)).toMatchInlineSnapshot(`"Pull request template sample."`)
+
+		const { getOctokit } = await import('@actions/github')
+
+		expect(getOctokit).toHaveBeenCalledWith('token')
+	})
+
+	it('returns undefined, given no template', async () => {
+		process.env.GITHUB_WORKSPACE = fp.resolve(__dirname, 'invalid')
+		process.env.GITHUB_TOKEN = 'token'
+
+		const { getOctokit } = await import('@actions/github')
+		vi.mocked(getOctokit).mockImplementationOnce(() => ({
+			rest: {
+				repos: {
+					getContent: async () => {
+						throw { status: 404 }
+					}
+				}
+			}
+		} as any))
+
+		expect(await getPullTemplate(core)).toBeUndefined()
 	})
 })
