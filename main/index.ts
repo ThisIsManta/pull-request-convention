@@ -16,20 +16,39 @@ entry({
 	pull,
 	core,
 	getPullTemplate: async () => {
-		try {
-			if (!process.env.GITHUB_WORKSPACE) {
-				throw new Error('Expect `process.env.GITHUB_WORKSPACE` to be a non-empty string but got ' + JSON.stringify(process.env.GITHUB_WORKSPACE))
+		const path = '.github/PULL_REQUEST_TEMPLATE.md'
+
+		// Try to read the template locally
+		if (process.env.GITHUB_WORKSPACE) {
+			const localPath = fp.join(process.env.GITHUB_WORKSPACE, path)
+			if (await fs.access(localPath).then(() => true).catch(() => false)) {
+				return await fs.readFile(localPath, 'utf-8')
 			}
-
-			const path = fp.resolve(process.env.GITHUB_WORKSPACE, '.github/PULL_REQUEST_TEMPLATE.md')
-			core.debug(path)
-
-			return await fs.readFile(path, 'utf-8')
-
-		} catch (error) {
-			core.debug(String(error))
-			return ''
 		}
+
+		// Try to fetch the template remotely
+		if (process.env.GITHUB_TOKEN) {
+			const octokit = github.getOctokit(process.env.GITHUB_TOKEN)
+
+			try {
+				const response = await octokit.rest.repos.getContent({
+					owner: github.context.repo.owner,
+					repo: github.context.repo.repo,
+					path,
+				})
+				if (core.isDebug()) {
+					core.debug('response »' + JSON.stringify(response, null, 2))
+				}
+
+				if ('type' in response.data && response.data.type === 'file' && typeof response.data.content === 'string') {
+					return Buffer.from(response.data.content, 'base64').toString("utf-8")
+				}
+			} catch (error) {
+				core.debug(String(error))
+			}
+		}
+
+		return ''
 	},
 }).catch((error) => {
 	core.setFailed(error)
