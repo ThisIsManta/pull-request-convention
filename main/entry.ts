@@ -138,9 +138,9 @@ function getSections(description: string) {
 function getChecklistItems(description: string) {
 	return description
 		.split('\n')
-		.map(line => line.trim().match(/^- \[(?<mark>x| )\] (?<text>.+)/))
+		.map(line => line.trim().match(/^- \[(?<mark>x|X| )\] (?<text>.+)/))
 		.filter((item): item is any => !!item)
-		.map(({ groups }) => ({ text: groups.text, checked: groups.mark === 'x' }))
+		.map(({ groups }) => ({ text: groups.text, checked: groups.mark.toLowerCase() === 'x' }))
 }
 
 function stripHTMLComments(description: string) {

@@ -222,7 +222,7 @@ it('throws if the required checklists are not checked', async () => {
 ### Solutions
 - [x] www
 - [ ] xxx
-- [x] yyy
+- [X] yyy
 - [ ] zzz
 			`,
 		},
