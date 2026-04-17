@@ -1,6 +1,6 @@
 {
   "name": "pull-request-convention",
-  "version": "4.4.0",
+  "version": "5.0.0",
   "author": "Anantachai Saothong <thisismanta@gmail.com>",
   "license": "MIT",
   "engines": {
