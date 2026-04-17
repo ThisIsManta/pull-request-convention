@@ -7,7 +7,7 @@ pre-commit:
   commands:
     test:
       glob: "main/*"
-      run: npm run test -- --silent --ci
+      run: npm run test -- --no-watch
 commit-msg:
   commands:
     lint:

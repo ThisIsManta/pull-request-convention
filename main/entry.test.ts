@@ -1,12 +1,12 @@
-import { jest, expect, it, describe } from '@jest/globals'
+import { vi, expect, it, describe } from 'vitest'
 import { default as entryOriginal } from './entry'
 
 const core = {
-	getInput: jest.fn((key: string) => ''),
-	setFailed: jest.fn(),
-	info: jest.fn(),
-	error: jest.fn(),
-	debug: jest.fn(),
+	getInput: vi.fn((key: string) => ''),
+	setFailed: vi.fn(),
+	info: vi.fn(),
+	error: vi.fn(),
+	debug: vi.fn(),
 }
 
 const pull = {
@@ -16,7 +16,7 @@ const pull = {
 }
 
 const entry = (overriding: Partial<Parameters<typeof entryOriginal>[0]>) => {
-	jest.clearAllMocks()
+	vi.clearAllMocks()
 
 	return entryOriginal({
 		pull,
